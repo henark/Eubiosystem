@@ -161,7 +161,7 @@ const ENERGY_GRID_ABI = [
 ] as const;
 
 // Configuração do contrato (em produção, vem de variáveis de ambiente)
-const CONTRACT_ADDRESS = '0x...' as `0x${string}`; // Será configurado depois do deploy
+const CONTRACT_ADDRESS = (typeof window !== 'undefined' && (window as any).CONTRACT_ADDRESS) || '0x0000000000000000000000000000000000000000' as `0x${string}`;
 const CHAIN = localhost; // ou mainnet para produção
 
 export class EnergyGridService {
@@ -170,6 +170,15 @@ export class EnergyGridService {
   private contract;
 
   constructor() {
+    // Verificação de ambiente para window.ethereum
+    if (typeof window === 'undefined') {
+      // No ambiente servidor (SSR), criamos clientes mock
+      this.publicClient = null as any;
+      this.walletClient = null as any;
+      this.contract = null as any;
+      return;
+    }
+
     // Cliente público para leituras (sem wallet necessário)
     this.publicClient = createPublicClient({
       chain: CHAIN,
