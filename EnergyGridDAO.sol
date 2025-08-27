@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
+
+interface IERC20 {
+    function transfer(address to, uint256 amount) external returns (bool);
+}
 
 /**
  * @title EnergyGridDAO
@@ -8,6 +12,17 @@ pragma solidity ^0.8.20;
  * Autopoiese, Integração Sistémica, Metacognição e Ressonância Semântica
  */
 contract EnergyGridDAO {
+
+    address public owner;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Caller is not the owner");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+    }
     
     // ============================================================================
     // ESTRUTURAS DE DADOS E ESTADO
@@ -203,6 +218,7 @@ contract EnergyGridDAO {
         validAmount(amount) 
         notSuspended(to) 
     {
+        require(to != msg.sender, "Cannot transfer to self");
         require(members[to].isRegistered, "Recipient is not a registered member");
         require(members[msg.sender].energyCredits >= amount, "Insufficient energy credits");
         
@@ -647,6 +663,7 @@ contract EnergyGridDAO {
         onlyMember 
         validAmount(amount) 
     {
+        require(to != msg.sender, "Cannot transfer to self");
         require(members[to].isRegistered, "Recipient is not a registered member");
         require(!members[to].isTemporarilySuspended, "Recipient is suspended");
         
@@ -666,5 +683,9 @@ contract EnergyGridDAO {
         
         emit VotingCreditsUpdated(msg.sender, members[msg.sender].votingCredits, block.timestamp);
         emit VotingCreditsUpdated(to, members[to].votingCredits, block.timestamp);
+    }
+
+    function rescueTokens(address tokenAddress, address to, uint256 amount) external onlyOwner {
+        IERC20(tokenAddress).transfer(to, amount);
     }
 }
