@@ -13,6 +13,8 @@ import {
   SystemHealth,
   EnergyGridEvent 
 } from '@/types/energyGrid';
+import { UniversalAccount } from '@particle-network/universal-account-sdk';
+import { Interface } from 'ethers';
 
 // Declaração para window.ethereum (MetaMask)
 declare global {
@@ -168,6 +170,13 @@ export class EnergyGridService {
   private publicClient;
   private walletClient;
   private contract;
+  private universalAccount: UniversalAccount | null = null;
+  private provider: any = null;
+
+  public setUniversalAccount(ua: UniversalAccount, provider: any) {
+    this.universalAccount = ua;
+    this.provider = provider;
+  }
 
   constructor() {
     // Verificação de ambiente para window.ethereum
@@ -352,118 +361,44 @@ export class EnergyGridService {
   // FUNÇÕES DE ESCRITA (Ações Transformadoras)
   // ==========================================
 
-  /**
-   * Registra um novo membro na DAO
-   * Primeira manifestação da Autopoiese
-   */
+  private async sendUniversalTransaction(txData: any) {
+    if (!this.universalAccount || !this.provider) {
+      throw new Error('Universal Account not initialized');
+    }
+    const tx = await this.universalAccount.createUniversalTransaction({ transactions: [txData] });
+    const signature = await this.provider.signMessage(tx.rootHash);
+    const sendResult = await this.universalAccount.sendTransaction(tx, signature);
+    return sendResult.transactionId;
+  }
+
   async registerMember(): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.registerMember({
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro ao registrar membro:', error);
-      throw new Error('Falha no registro como membro');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("registerMember");
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
-  /**
-   * Reporta produção de energia
-   * Conecta o mundo físico ao digital
-   */
   async reportEnergyProduction(amount: bigint): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.reportEnergyProduction([amount], {
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro ao reportar produção de energia:', error);
-      throw new Error('Falha no reporte de energia');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("reportEnergyProduction", [amount]);
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
-  /**
-   * Transfere créditos entre membros
-   * Implementa Simbiose económica
-   */
   async transferCredits(to: string, amount: bigint): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.transferCredits([to as `0x${string}`, amount], {
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro ao transferir créditos:', error);
-      throw new Error('Falha na transferência de créditos');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("transferCredits", [to, amount]);
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
-  /**
-   * Cria uma nova proposta
-   * Manifestação da Metacognição coletiva
-   */
   async createProposal(description: string): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.createProposal([description], {
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro ao criar proposta:', error);
-      throw new Error('Falha na criação da proposta');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("createProposal", [description]);
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
-  /**
-   * Voto quadrático com intensidade
-   * Ressonância Semântica em ação
-   */
   async voteQuadratic(proposalId: bigint, support: boolean, intensity: number): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.voteQuadratic([proposalId, support, BigInt(intensity)], {
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro no voto quadrático:', error);
-      throw new Error('Falha no voto quadrático');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("voteQuadratic", [proposalId, support, BigInt(intensity)]);
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
-  /**
-   * Doa créditos de votação
-   * Solidariedade cívica (Ressonância Semântica)
-   */
   async donateVotingCredits(to: string, amount: bigint): Promise<string> {
-    try {
-      const [account] = await this.walletClient.getAddresses();
-      
-      const hash = await this.contract.write.donateVotingCredits([to as `0x${string}`, amount], {
-        account
-      });
-      
-      return hash;
-    } catch (error) {
-      console.error('Erro ao doar créditos de votação:', error);
-      throw new Error('Falha na doação de créditos');
-    }
+    const data = new Interface(ENERGY_GRID_ABI).encodeFunctionData("donateVotingCredits", [to, amount]);
+    return this.sendUniversalTransaction({ to: CONTRACT_ADDRESS, data });
   }
 
   // ==========================================
