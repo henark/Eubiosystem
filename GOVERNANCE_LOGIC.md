@@ -191,6 +191,56 @@ function voteQuadratic(uint256 proposalId, bool support, uint256 intensity) exte
 3. **Incentivo à Participação**: Créditos incentivam envolvimento ativo
 4. **Consenso Amplo**: Favorece soluções que têm suporte moderado de muitos
 
+### 5. Proposta de Evolução 2: Votação com Preservação de Privacidade
+
+#### 5.1 Justificação Filosófica e Conexão Eudaimónica
+
+Inspirado pelos princípios de privacidade e segurança da **xx.network**, propomos uma evolução que introduz a votação anônima. Embora a transparência seja um pilar da nossa DAO, a privacidade do voto é crucial para a **segurança psicológica** dos membros, um componente chave da **Simbiose** (harmonia) e **Autopoiese** (resiliência do sistema contra coerção externa). Proteger a identidade dos votantes em decisões controversas pode encorajar uma participação mais honesta e corajosa.
+
+**Princípios**:
+- **Privacidade do Votante**: O endereço de um membro não é diretamente ligado ao seu voto no on-chain.
+- **Segurança contra Coerção**: Reduz o risco de membros serem pressionados ou retaliados com base em seus votos.
+- **Confiança no Sistema**: Aumenta a confiança dos membros de que podem participar de forma segura.
+
+#### 5.2 Implementação Técnica: Modelo com Relayer
+
+Para alcançar a privacidade, implementamos um sistema de "relayer". Em vez de o membro enviar a transação de voto diretamente, ele a envia para um serviço de retransmissão off-chain (que em um sistema de produção seria integrado a uma mixnet como a cMixx da xx.network para anonimato completo).
+
+**Fluxo do Voto Anônimo**:
+1.  O membro assina uma mensagem de voto off-chain.
+2.  Esta mensagem é enviada para o serviço de relayer através de um canal seguro/anônimo.
+3.  O serviço de relayer, e apenas ele, chama uma função especial no smart contract.
+4.  O smart contract verifica a autoridade do relayer e registra o voto em nome do membro original.
+
+#### 5.3 Implementação Proposta no Contrato
+
+```solidity
+// Endereço autorizado a submeter votos anónimos
+address public relayer;
+
+modifier onlyRelayer() {
+    require(msg.sender == relayer, "Caller is not the authorized relayer");
+    _;
+}
+
+function anonymousVoteQuadratic(
+    uint256 proposalId,
+    address voter,
+    bool support,
+    uint256 intensity
+)
+    external
+    onlyRelayer
+{
+    // ... (lógica idêntica à voteQuadratic, mas operando em nome do 'voter')
+}
+```
+
+#### 5.4 Considerações de Segurança e Trade-offs
+
+- **Confiança no Relayer**: Este modelo introduz um ponto de confiança. O relayer pode, em teoria, censurar votos ou ver o voto antes que ele seja anonimizado pela mixnet. Em uma implementação completa, múltiplos relayers ou técnicas de criptografia mais avançadas (como ZK-proofs) seriam necessários para mitigar essa confiança.
+- **Complexidade vs. Privacidade**: A adição deste sistema aumenta a complexidade da arquitetura geral, um trade-off que aceitamos para o ganho significativo em segurança e privacidade dos membros.
+
 ### 6. Considerações de Implementação
 
 #### 6.1 Migração do Sistema Atual

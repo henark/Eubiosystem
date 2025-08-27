@@ -41,6 +41,12 @@ Servidor Node.js/Express com:
 - Retry automático para resiliência
 - Logging estruturado para metacognição
 
+### 🛡️ `eudaimonic-dashboard/privacy-service/`
+Servidor Node.js/Express que simula um relayer de privacidade:
+- Inspirado na **xx.network** para proteger a identidade dos membros.
+- Recebe votos e os retransmite anonimamente para o smart contract.
+- Essencial para a **segurança psicológica** e **participação livre**.
+
 ## 🚀 Como Executar
 
 ### Pré-requisitos
@@ -52,6 +58,7 @@ Servidor Node.js/Express com:
 ```bash
 # 1. Deploy do Smart Contract
 # Compilar e fazer deploy do EnergyGridDAO.sol
+# O endereço do deployer será o 'relayer'
 
 # 2. Backend IoT
 cd eudaimonic-iot-backend
@@ -59,15 +66,22 @@ npm install && cp .env.example .env
 # Editar .env com configurações
 npm run dev
 
-# 3. Dashboard
-cd eudaimonic-dashboard  
-npm install
-# Atualizar CONTRACT_ADDRESS em blockchainService.ts
+# 3. Serviço de Privacidade
+cd ../eudaimonic-dashboard/privacy-service
+npm install && cp .env.example .env
+# Editar .env com a chave privada do relayer e o endereço do contrato
 npm run dev
 
-# 4. Acessar
+# 4. Dashboard
+cd ../../eudaimonic-dashboard
+npm install
+# Atualizar CONTRACT_ADDRESS em services/blockchainService.ts
+npm run dev
+
+# 5. Acessar
 # Dashboard: http://localhost:3000
 # API IoT: http://localhost:3001
+# API de Privacidade: http://localhost:3002
 ```
 
 ## 📊 Métricas Eudaimónicas

@@ -56,6 +56,17 @@ contract EnergyGridDAO {
     uint256 public constant MAX_VOTING_CREDITS = 500;
     uint256 public constant MAX_VOTE_INTENSITY = 10;
     uint256 public constant VOTING_CREDITS_INTERVAL = 30 days;
+
+    // Endereço do relayer autorizado a submeter votos anónimos
+    address public relayer;
+
+    // ============================================================================
+    // CONSTRUTOR
+    // ============================================================================
+
+    constructor() {
+        relayer = msg.sender;
+    }
     
     // ============================================================================
     // EVENTOS (Sistema Nervoso do Contrato)
@@ -71,6 +82,7 @@ contract EnergyGridDAO {
     event SystemBalanceAlert(uint256 totalSupply, uint256 totalDemand, uint256 newFeeRate);
     event VotingCreditsUpdated(address indexed member, uint256 newCredits, uint256 timestamp);
     event QuadraticVoteCast(uint256 indexed proposalId, address indexed voter, bool support, uint256 intensity, uint256 cost);
+    event AnonymousVoteCast(uint256 indexed proposalId, address indexed voter, bool support, uint256 intensity, uint256 cost);
     
     // ============================================================================
     // MODIFICADORES (Membranas Celulares)
@@ -89,6 +101,11 @@ contract EnergyGridDAO {
     
     modifier notSuspended(address member) {
         require(!members[member].isTemporarilySuspended, "Member is suspended");
+        _;
+    }
+
+    modifier onlyRelayer() {
+        require(msg.sender == relayer, "Caller is not the authorized relayer");
         _;
     }
     
@@ -515,6 +532,60 @@ contract EnergyGridDAO {
         }
         
         emit QuadraticVoteCast(proposalId, msg.sender, support, intensity, cost);
+    }
+
+    /**
+     * @notice Permite que um relayer submeta um voto anónimo em nome de um membro
+     * @param proposalId ID da proposta
+     * @param voter Endereço do membro que está a votar
+     * @param support true para votar a favor, false para votar contra
+     * @param intensity Intensidade do voto (1-10), custo quadrático
+     * @dev Chamada apenas pelo relayer para preservar a privacidade do votante.
+     *
+     * Ressonância Semântica com Privacidade:
+     * Esta função permite a participação na governação sem expor publicamente
+     * a identidade do votante, alinhando-se com os princípios de segurança
+     * e privacidade da xx.network.
+     */
+    function anonymousVoteQuadratic(
+        uint256 proposalId,
+        address voter,
+        bool support,
+        uint256 intensity
+    )
+        external
+        onlyRelayer
+    {
+        require(intensity > 0 && intensity <= MAX_VOTE_INTENSITY, "Invalid intensity level (1-10)");
+        require(members[voter].isRegistered, "Voter is not a registered member");
+        require(!members[voter].isTemporarilySuspended, "Voter is temporarily suspended");
+
+        Proposal storage proposal = proposals[proposalId];
+        require(proposal.id == proposalId, "Proposal does not exist");
+        require(block.timestamp <= proposal.endTime, "Voting period has ended");
+        require(!proposal.hasVoted[voter], "Member has already voted on this proposal");
+        require(!proposal.executed, "Proposal has already been executed");
+
+        // Atualiza créditos de votação antes de votar
+        updateVotingCredits(voter);
+
+        // Calcula custo quadrático
+        uint256 cost = intensity * intensity;
+        require(members[voter].votingCredits >= cost, "Insufficient voting credits");
+
+        // Deduz créditos e registra voto
+        members[voter].votingCredits -= cost;
+        proposal.hasVoted[voter] = true;
+        proposal.votePower[voter] = intensity;
+
+        // Adiciona votos com peso da intensidade
+        if (support) {
+            proposal.yesVotes += intensity;
+        } else {
+            proposal.noVotes += intensity;
+        }
+
+        emit AnonymousVoteCast(proposalId, voter, support, intensity, cost);
     }
     
     /**

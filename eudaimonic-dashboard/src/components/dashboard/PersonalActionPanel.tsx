@@ -106,6 +106,57 @@ export default function PersonalActionPanel({ connectionState, onUpdate }: Perso
     setVoteProposalId('');
   };
 
+  const handleAnonymousVote = async (support: boolean) => {
+    if (!voteProposalId || isNaN(Number(voteProposalId))) {
+      alert('Por favor, insira um ID de proposta válido.');
+      return;
+    }
+    if (!connectionState.address) {
+      alert('Não foi possível obter o seu endereço. Verifique se a carteira está conectada.');
+      return;
+    }
+
+    setTxState({ status: 'loading' });
+
+    try {
+      const response = await fetch('http://localhost:3002/relay-vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          proposalId: Number(voteProposalId),
+          voter: connectionState.address,
+          support: support,
+          intensity: voteIntensity,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Falha ao retransmitir o voto.');
+      }
+
+      setTxState({ status: 'success', txHash: data.transactionHash });
+
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setTxState({ status: 'idle' });
+        onUpdate(); // Refresh data after the message disappears
+      }, 3000);
+
+    } catch (error) {
+      console.error('Erro ao retransmitir o voto:', error);
+      setTxState({ status: 'error', error: error instanceof Error ? error.message : 'Erro desconhecido' });
+
+      // Reset after 5 seconds
+      setTimeout(() => {
+        setTxState({ status: 'idle' });
+      }, 5000);
+    }
+  };
+
   const handleDonateCredits = () => {
     if (!donationTo || !donationAmount || isNaN(Number(donationAmount))) {
       alert('Por favor, preencha todos os campos com valores válidos.');
@@ -376,6 +427,30 @@ export default function PersonalActionPanel({ connectionState, onUpdate }: Perso
                 >
                   Votar Contra
                 </button>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 mb-3 text-center">
+                  Ou vote anonimamente através da rede de privacidade (simulado):
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleAnonymousVote(true)}
+                    disabled={txState.status === 'loading' || !voteProposalId}
+                    className="bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    A Favor (Anônimo)
+                  </button>
+                  <button
+                    onClick={() => handleAnonymousVote(false)}
+                    disabled={txState.status === 'loading' || !voteProposalId}
+                    className="bg-slate-600 hover:bg-slate-700 disabled:bg-slate-400 text-white py-2 px-4 rounded-md font-medium transition-colors flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Contra (Anônimo)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
