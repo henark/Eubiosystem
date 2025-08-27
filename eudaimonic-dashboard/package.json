@@ -9,6 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@particle-network/authkit": "^2.1.1",
+    "@particle-network/connectkit": "^2.1.3",
+    "@particle-network/universal-account-sdk": "^1.0.4",
     "@rainbow-me/rainbowkit": "^2.2.8",
     "next": "15.3.5",
     "react": "^19.0.0",
